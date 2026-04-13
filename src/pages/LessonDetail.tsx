@@ -384,6 +384,18 @@ const LessonDetail = () => {
             )}
           </div>
 
+          {/* Hero image */}
+          {lesson.image_url && (
+            <div className="rounded-2xl overflow-hidden border border-[#e5e4de]">
+              <img
+                src={lesson.image_url}
+                alt={lesson.title}
+                className="w-full h-48 sm:h-64 object-cover"
+                loading="lazy"
+              />
+            </div>
+          )}
+
           {/* Instructions */}
           {content.instructions && (
             <div className="rounded-2xl bg-[#faf9f5] border border-[#e5e4de] p-6">
