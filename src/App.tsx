@@ -12,6 +12,8 @@ import LessonDetail from "./pages/LessonDetail.tsx";
 import MyStuff from "./pages/MyStuff.tsx";
 import ParentDashboard from "./pages/ParentDashboard.tsx";
 import Settings from "./pages/Settings.tsx";
+import Privacy from "./pages/Privacy.tsx";
+import Terms from "./pages/Terms.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
@@ -32,6 +34,8 @@ const App = () => (
             <Route path="/app/my-stuff" element={<MyStuff />} />
             <Route path="/app/parent" element={<ParentDashboard />} />
             <Route path="/app/settings" element={<Settings />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<Terms />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
