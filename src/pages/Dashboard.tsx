@@ -219,6 +219,7 @@ const Dashboard = () => {
   const completedInModule = activeModuleLessons.filter((l) => l.completed).length;
   const moduleProgress = activeModuleLessons.length > 0 ? (completedInModule / activeModuleLessons.length) * 100 : 0;
   const lockedModules = modules.filter((m) => m.status === "locked");
+  const dailyChallenge = lessons.find((l) => (l as any).is_daily_challenge && !l.completed);
 
   // Weekly progress for bar chart (last 7 day_numbers)
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -420,6 +421,29 @@ const Dashboard = () => {
           </div>
         ) : (
           <div className="space-y-8">
+            {/* Daily Challenge */}
+            {dailyChallenge && (
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={() => navigate(`/app/lesson/${dailyChallenge.id}`)}
+                className="w-full rounded-2xl bg-[#c96442]/5 border border-[#c96442]/20 p-5 flex items-center gap-4 text-left transition-all hover:shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#c96442]/10">
+                  <Star className="h-6 w-6 text-[#c96442]" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="text-xs font-medium text-[#c96442] uppercase tracking-wide">Daily Challenge</p>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#c96442]/10 text-[#c96442] font-medium">30 XP</span>
+                  </div>
+                  <p className="text-sm font-medium text-[#141413]">{dailyChallenge.title}</p>
+                  <p className="text-xs text-[#87867f] mt-0.5">{dailyChallenge.duration_minutes} min</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-[#c96442]" />
+              </motion.button>
+            )}
+
             {/* Active module featured card */}
             {activeModule && (
               <motion.div
