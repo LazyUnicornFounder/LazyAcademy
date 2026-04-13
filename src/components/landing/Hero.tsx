@@ -65,7 +65,7 @@ const Hero = () => {
   return (
     <section className="py-24 md:py-32 overflow-hidden">
       <div className="container text-center">
-        <p className="text-sm font-medium text-primary mb-4 tracking-wide uppercase">AI-powered learning adventures</p>
+        
         <h1 className="mx-auto max-w-3xl text-4xl leading-tight md:text-6xl md:leading-tight text-foreground">
           Personalized learning your kids will actually love.
         </h1>
