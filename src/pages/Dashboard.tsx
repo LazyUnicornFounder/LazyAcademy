@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   GraduationCap, Flame, Lock, Eye, BookOpen, Wrench, Headphones,
-  Gamepad2, HelpCircle, Check, LogOut, ChevronRight,
+  Gamepad2, HelpCircle, Check, LogOut, ChevronRight, Crown, Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
