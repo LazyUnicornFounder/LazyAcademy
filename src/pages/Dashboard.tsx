@@ -219,6 +219,23 @@ const Dashboard = () => {
     }
   };
 
+  const handleGenerateProject = async (moduleId: string) => {
+    if (!activeChild || generatingProject) return;
+    setGeneratingProject(moduleId);
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-project", {
+        body: { child_id: activeChild.id, module_id: moduleId },
+      });
+      if (error) throw error;
+      toast({ title: "Project created!", description: data.project?.title || "Check it out below." });
+      await loadChildData(activeChild.id);
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message || "Failed to generate project", variant: "destructive" });
+    } finally {
+      setGeneratingProject(null);
+    }
+  };
+
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f5f4ed]">
