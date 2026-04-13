@@ -172,16 +172,27 @@ const Dashboard = () => {
 
   const loadChildData = async (childId: string) => {
     setDataLoading(true);
-    const [modsRes, lessonsRes, progRes, rewardsRes] = await Promise.all([
+    const [modsRes, lessonsRes, progRes, rewardsRes, projectsRes] = await Promise.all([
       supabase.from("curriculum_modules").select("*").eq("child_id", childId).order("week_number"),
       supabase.from("lessons").select("*").eq("child_id", childId).order("day_number"),
       supabase.from("child_progress").select("*").eq("child_id", childId).single(),
       supabase.from("child_rewards").select("*").eq("child_id", childId).single(),
+      supabase.from("module_projects").select("*").eq("child_id", childId),
     ]);
     setModules(modsRes.data || []);
-    setLessons(lessonsRes.data || []);
+    const allLessons = lessonsRes.data || [];
+    setLessons(allLessons);
     setProgress(progRes.data || null);
     setRewards(rewardsRes.data || null);
+    setModuleProjects(projectsRes.data || []);
+
+    // Find lessons due for review
+    const now = new Date().toISOString();
+    const reviews = allLessons.filter(
+      (l: any) => l.completed && l.review_due_at && l.review_due_at <= now
+    );
+    setReviewLessons(reviews);
+
     setDataLoading(false);
   };
 
