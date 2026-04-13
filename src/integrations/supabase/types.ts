@@ -72,6 +72,44 @@ export type Database = {
           },
         ]
       }
+      child_progress: {
+        Row: {
+          child_id: string
+          created_at: string
+          current_streak: number
+          id: string
+          last_activity_at: string | null
+          longest_streak: number
+          total_lessons_completed: number
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_activity_at?: string | null
+          longest_streak?: number
+          total_lessons_completed?: number
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          current_streak?: number
+          id?: string
+          last_activity_at?: string | null
+          longest_streak?: number
+          total_lessons_completed?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_progress_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: true
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       children: {
         Row: {
           age: number
@@ -98,6 +136,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      curriculum_modules: {
+        Row: {
+          child_id: string
+          created_at: string
+          description: string | null
+          id: string
+          status: string
+          theme_emoji: string | null
+          title: string
+          week_number: number
+        }
+        Insert: {
+          child_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          theme_emoji?: string | null
+          title: string
+          week_number: number
+        }
+        Update: {
+          child_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          status?: string
+          theme_emoji?: string | null
+          title?: string
+          week_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_modules_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       learning_schedules: {
         Row: {
@@ -127,6 +206,66 @@ export type Database = {
             columns: ["child_id"]
             isOneToOne: false
             referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lessons: {
+        Row: {
+          child_id: string
+          completed: boolean
+          completed_at: string | null
+          content_json: Json | null
+          created_at: string
+          day_number: number
+          description: string | null
+          duration_minutes: number
+          id: string
+          module_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          child_id: string
+          completed?: boolean
+          completed_at?: string | null
+          content_json?: Json | null
+          created_at?: string
+          day_number: number
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          module_id: string
+          title: string
+          type: string
+        }
+        Update: {
+          child_id?: string
+          completed?: boolean
+          completed_at?: string | null
+          content_json?: Json | null
+          created_at?: string
+          day_number?: number
+          description?: string | null
+          duration_minutes?: number
+          id?: string
+          module_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "curriculum_modules"
             referencedColumns: ["id"]
           },
         ]
