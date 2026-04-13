@@ -109,6 +109,7 @@ export type Database = {
           child_id: string
           created_at: string
           current_streak: number
+          difficulty_level: number
           id: string
           last_activity_at: string | null
           longest_streak: number
@@ -118,6 +119,7 @@ export type Database = {
           child_id: string
           created_at?: string
           current_streak?: number
+          difficulty_level?: number
           id?: string
           last_activity_at?: string | null
           longest_streak?: number
@@ -127,6 +129,7 @@ export type Database = {
           child_id?: string
           created_at?: string
           current_streak?: number
+          difficulty_level?: number
           id?: string
           last_activity_at?: string | null
           longest_streak?: number
@@ -285,6 +288,7 @@ export type Database = {
           description: string | null
           duration_minutes: number
           id: string
+          image_url: string | null
           is_daily_challenge: boolean
           module_id: string
           title: string
@@ -300,6 +304,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number
           id?: string
+          image_url?: string | null
           is_daily_challenge?: boolean
           module_id: string
           title: string
@@ -315,6 +320,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number
           id?: string
+          image_url?: string | null
           is_daily_challenge?: boolean
           module_id?: string
           title?: string
