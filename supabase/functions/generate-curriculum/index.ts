@@ -109,12 +109,12 @@ serve(async (req) => {
 
     const childAge = child.age || 7;
     const ageRules = childAge <= 5
-      ? `AGE GROUP 3-5: Use only simple sentences. No quizzes longer than 3 questions. No reading-heavy lessons. Only matching and drawing exercises allowed.`
+      ? `AGE GROUP 3-5: Use only simple sentences (1-2 per paragraph). No quizzes longer than 3 questions. No reading-heavy lessons. Only matching (3-4 pairs) and drawing exercises allowed. Instructions should be 1-2 sentences. Content should be very visual and tactile.`
       : childAge <= 9
-      ? `AGE GROUP 6-9: Short paragraphs, basic vocabulary. Exercises can include fill-in-the-blank, matching, and drawing.`
+      ? `AGE GROUP 6-9: Short paragraphs (3-4 sentences each), basic vocabulary. Provide 3-4 paragraphs of teaching content before exercises. Exercises: fill-in-the-blank, matching (5-6 pairs), and drawing. Include 2-3 exercises per lesson. Quiz questions should have plausible distractors.`
       : childAge <= 12
-      ? `AGE GROUP 10-12: Full paragraphs allowed. Can include sorting and more complex quizzes.`
-      : `AGE GROUP 13-16: Can discuss historical conflicts, basic economics, more nuanced topics. Still no graphic or explicit content.`;
+      ? `AGE GROUP 10-12: IMPORTANT — this age group needs SUBSTANTIAL content. Provide 4-6 detailed paragraphs of teaching material with real facts, explanations, and examples BEFORE exercises. Include 3-4 exercises per lesson. Matching should have 6-8 pairs. Fill-in-the-blank should test comprehension, not just recall. Sorting exercises should have 5-7 items. Quiz questions (4-6 per lesson) must have thoughtful distractors that require understanding, not guessing. Instructions must be detailed and specific (at least 3-4 sentences explaining what to do and why). Avoid overly obvious answers. Content should teach something genuinely interesting and new.`
+      : `AGE GROUP 13-16: Provide RICH, detailed content — 5-8 paragraphs of in-depth material with nuanced explanations, real-world connections, and critical thinking prompts. Include 3-5 challenging exercises per lesson. Matching: 8-10 pairs. Sorting: 6-8 items requiring analysis. Fill-in-the-blank: requires inference, not just memory. Quiz: 5-8 questions with subtle distractors. Can discuss historical conflicts, basic economics, philosophy, more nuanced topics. Still no graphic or explicit content.`;
 
     const systemPrompt = `STRICT RULES: You are generating content for children ages 3-16. You MUST follow these rules with zero exceptions:
 - No violence, weapons, gore, death descriptions, or war details beyond basic historical facts
@@ -134,10 +134,16 @@ serve(async (req) => {
 
 ${ageRules}
 
-You are a children's education curriculum designer. Create a 4-week curriculum blending interests into themed modules. Each week is one module with daily lessons. Lazy Academy is VIDEO-FREE — never include video content or YouTube references. Lesson types: read, hands_on, audio, game, quiz only. Each lesson should include 1-2 interactive exercises from these types:
-- matching: pairs of items to connect. Data: { pairs: [{ left: "item", right: "match" }] }
-- fill_blank: sentence with missing word. Data: { sentence: "The ___ is...", options: ["a","b","c","d"], answer: "b" }
-- sorting: put items in correct order. Data: { items: ["c","a","b"], correct_order: ["a","b","c"], instruction: "Sort by..." }
+You are a children's education curriculum designer. Create a 4-week curriculum blending interests into themed modules. Each week is one module with daily lessons. Lazy Academy is VIDEO-FREE — never include video content or YouTube references. Lesson types: read, hands_on, audio, game, quiz only.
+
+CRITICAL — CONTENT DEPTH REQUIREMENTS:
+- The "instructions" field must be SUBSTANTIAL teaching content, not a one-liner. It should contain multiple paragraphs that actually TEACH the topic with facts, explanations, examples, and context. Think of it as a mini-article the child reads and learns from. For ages 10+, instructions should be at least 300 words.
+- Exercises must be CHALLENGING and require actual thought. Never make answers obvious. Distractors in quizzes must be plausible.
+- The total content (reading + exercises + quiz) must realistically fill the stated duration_minutes. A 15-minute lesson needs enough content for 15 minutes — that means substantial reading material PLUS multiple exercises.
+- Each lesson MUST include 2-4 interactive exercises from these types:
+- matching: pairs of items to connect. Data: { pairs: [{ left: "item", right: "match" }] } — minimum 5 pairs for ages 8+
+- fill_blank: sentence with missing word. Data: { sentence: "The ___ is...", options: ["a","b","c","d"], answer: "b" } — sentence must require comprehension
+- sorting: put items in correct order. Data: { items: ["c","a","b"], correct_order: ["a","b","c"], instruction: "Sort by..." } — minimum 5 items for ages 8+
 - drawing: creative prompt. Data: { prompt: "Draw what you think..." }
 Return JSON only, no markdown.`;
 
@@ -180,7 +186,7 @@ Return this exact JSON structure:
   ]
 }
 
-Create ${schedule.days.length} lessons per week, 4 modules total. Each lesson ≈${schedule.minutes_per_day} minutes. Never use type "video". Make lessons fun, age-appropriate, and creative.`;
+Create ${schedule.days.length} lessons per week, 4 modules total. Each lesson ≈${schedule.minutes_per_day} minutes. Never use type "video". Make lessons fun, age-appropriate, and creative. IMPORTANT: Each lesson's "instructions" field must contain REAL teaching content (multiple paragraphs with facts and explanations), not just "Read about X" or "Learn about Y". The content must realistically take ${schedule.minutes_per_day} minutes to complete including reading and all exercises.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return jsonResponse({ error: "AI API key not configured" }, 500);
@@ -192,7 +198,7 @@ Create ${schedule.days.length} lessons per week, 4 modules total. Each lesson �
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-2.5-pro",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
