@@ -13,7 +13,7 @@ const features = [
   { label: "Weekly email reports", free: false, pro: true },
   { label: "Printable worksheets", free: false, pro: true },
   { label: "Spaced repetition reviews", free: false, pro: true },
-  { label: "Module capstone projects", free: false, pro: true },
+  { label: "Capstone projects", free: false, pro: true },
 ];
 
 const Pricing = () => {
