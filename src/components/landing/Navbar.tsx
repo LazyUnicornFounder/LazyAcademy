@@ -4,11 +4,11 @@ import { GraduationCap, Menu, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const NAV_LINKS = [
-  { href: "#about", label: "About" },
   { href: "#how-it-works", label: "How it works" },
   { href: "#safety", label: "Safety" },
   { href: "#pricing", label: "Pricing" },
   { href: "#faq", label: "FAQ" },
+  { href: "#about", label: "About" },
 ];
 
 const Navbar = () => {
