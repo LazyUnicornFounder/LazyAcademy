@@ -147,6 +147,10 @@ const LessonDetail = () => {
   const [showBadges, setShowBadges] = useState(false);
   const [showXpGain, setShowXpGain] = useState(false);
   const quizScoreRef = useRef<{ correct: number; total: number } | undefined>(undefined);
+  const [showReport, setShowReport] = useState(false);
+  const [reportReason, setReportReason] = useState("Inappropriate");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
