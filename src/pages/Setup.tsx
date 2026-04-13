@@ -70,6 +70,18 @@ const Setup = () => {
 
   if (!user) return <Navigate to="/login" replace />;
 
+  const handleClose = useCallback(() => {
+    navigate("/");
+  }, [navigate]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && step < 6) handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [step, handleClose]);
+
   const goNext = () => {
     setDirection(1);
     // For steps 3, 4, 5 — if multiple children, cycle through them
