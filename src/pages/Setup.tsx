@@ -60,16 +60,6 @@ const Setup = () => {
     schedules: {},
   });
 
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
-  if (!user) return <Navigate to="/login" replace />;
-
   const handleClose = useCallback(() => {
     navigate("/");
   }, [navigate]);
@@ -81,6 +71,16 @@ const Setup = () => {
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [step, handleClose]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (!user) return <Navigate to="/login" replace />;
 
   const goNext = () => {
     setDirection(1);
