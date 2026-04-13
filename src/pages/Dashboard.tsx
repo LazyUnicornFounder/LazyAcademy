@@ -60,6 +60,9 @@ interface Lesson {
   completed_at: string | null;
   content_json: any;
   is_daily_challenge: boolean;
+  review_due_at: string | null;
+  review_count: number;
+  image_url: string | null;
 }
 
 interface ProgressData {
