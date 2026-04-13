@@ -46,6 +46,11 @@ const ParentDashboard = () => {
   const [drawings, setDrawings] = useState<any[]>([]);
   const [projectPhotos, setProjectPhotos] = useState<any[]>([]);
   const [selectedDrawing, setSelectedDrawing] = useState<string | null>(null);
+  const [modules, setModules] = useState<any[]>([]);
+  const [previewModule, setPreviewModule] = useState<any>(null);
+  const [previewLessons, setPreviewLessons] = useState<any[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   const activeChild = children[activeIdx];
 
