@@ -594,6 +594,118 @@ const Dashboard = () => {
               </div>
             )}
 
+            {/* Review section */}
+            {reviewLessons.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="rounded-2xl bg-[#faf9f5] border border-[#e5e4de] p-6"
+              >
+                <div className="flex items-center gap-2 mb-4">
+                  <RotateCcw className="h-4 w-4 text-[#c96442]" />
+                  <h3 className="font-serif text-lg text-[#141413]">Review</h3>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-[#c96442]/10 text-[#c96442] font-medium">
+                    {reviewLessons.length} due
+                  </span>
+                </div>
+                <p className="text-xs text-[#87867f] mb-3">Revisit these lessons to strengthen your memory. 5 XP each!</p>
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {reviewLessons.slice(0, 5).map((lesson) => {
+                    const Icon = LESSON_ICONS[lesson.type] || BookOpen;
+                    return (
+                      <button
+                        key={lesson.id}
+                        onClick={() => navigate(`/app/lesson/${lesson.id}`)}
+                        className="flex-shrink-0 w-40 rounded-xl border border-[#c96442]/20 bg-[#c96442]/5 p-4 text-left transition-all hover:shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+                      >
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <RotateCcw className="h-3.5 w-3.5 text-[#c96442]" />
+                          <span className="text-[10px] font-medium text-[#c96442]">Review</span>
+                        </div>
+                        <p className="text-sm font-medium text-[#141413] line-clamp-2">{lesson.title}</p>
+                        <p className="text-xs text-[#87867f] mt-1">5 XP</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Module projects */}
+            {modules.filter((m) => m.status === "completed").map((mod) => {
+              const project = moduleProjects.find((p: any) => p.module_id === mod.id);
+              if (project) {
+                return (
+                  <motion.div
+                    key={`project-${mod.id}`}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="rounded-2xl bg-[#faf9f5] border border-[#e5e4de] p-6"
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <Rocket className="h-4 w-4 text-[#c96442]" />
+                      <h3 className="font-serif text-base text-[#141413]">Module Project</h3>
+                      {project.completed && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700 font-medium">Done</span>
+                      )}
+                    </div>
+                    <h4 className="text-sm font-medium text-[#141413] mb-1">{project.title}</h4>
+                    <p className="text-xs text-[#5e5d59] mb-3">{project.description}</p>
+                    {project.instructions && (
+                      <div className="text-xs text-[#5e5d59] whitespace-pre-wrap bg-white rounded-xl border border-[#e5e4de] p-4 mb-3">
+                        {project.instructions}
+                      </div>
+                    )}
+                    {project.photo_url && (
+                      <img src={project.photo_url} alt={project.title} className="w-full h-40 object-cover rounded-xl border border-[#e5e4de] mb-3" />
+                    )}
+                    {!project.completed && (
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          className="bg-[#c96442] hover:bg-[#b5593a] text-white rounded-lg text-xs"
+                          onClick={async () => {
+                            await supabase
+                              .from("module_projects")
+                              .update({ completed: true, completed_at: new Date().toISOString() })
+                              .eq("id", project.id);
+                            if (activeChild) await loadChildData(activeChild.id);
+                          }}
+                        >
+                          <Check className="h-3.5 w-3.5 mr-1" />
+                          Mark Done
+                        </Button>
+                      </div>
+                    )}
+                  </motion.div>
+                );
+              }
+              // No project yet for this completed module
+              return (
+                <motion.button
+                  key={`gen-project-${mod.id}`}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  onClick={() => handleGenerateProject(mod.id)}
+                  disabled={!!generatingProject}
+                  className="w-full rounded-2xl bg-[#faf9f5] border border-dashed border-[#c96442]/30 p-5 flex items-center gap-4 text-left transition-all hover:bg-[#c96442]/5"
+                >
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c96442]/10">
+                    <Rocket className="h-5 w-5 text-[#c96442]" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-xs font-medium text-[#c96442] uppercase tracking-wide">
+                      {generatingProject === mod.id ? "Generating..." : "Module Project"}
+                    </p>
+                    <p className="text-sm text-[#5e5d59]">
+                      {mod.theme_emoji} {mod.title} — Create a capstone project!
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-[#c96442]" />
+                </motion.button>
+              );
+            })}
+
             {/* Locked modules */}
             {lockedModules.length > 0 && (
               <div className="space-y-3">
