@@ -105,7 +105,6 @@ const Dashboard = () => {
   const [lessons, setLessons] = useState<Lesson[]>([]);
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [dataLoading, setDataLoading] = useState(true);
-  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [currentPlan, setCurrentPlan] = useState("free");
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState<string | null>(null);
@@ -495,83 +494,6 @@ const Dashboard = () => {
         )}
       </div>
 
-      {/* Lesson detail modal */}
-      <AnimatePresence>
-        {selectedLesson && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
-            onClick={() => setSelectedLesson(null)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg rounded-2xl bg-[#faf9f5] border border-[#e5e4de] p-6 shadow-xl max-h-[80vh] overflow-y-auto"
-            >
-              {(() => {
-                const Icon = LESSON_ICONS[selectedLesson.type] || BookOpen;
-                const content = selectedLesson.content_json || {};
-                return (
-                  <>
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#c96442]/10">
-                        <Icon className="h-5 w-5 text-[#c96442]" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-[#87867f] capitalize">{selectedLesson.type.replace("_", " ")} • {selectedLesson.duration_minutes} min</p>
-                        <h3 className="font-serif text-lg text-[#141413]">{selectedLesson.title}</h3>
-                      </div>
-                    </div>
-
-                    {selectedLesson.description && (
-                      <p className="text-sm text-[#5e5d59] mb-4">{selectedLesson.description}</p>
-                    )}
-
-                    {content.instructions && (
-                      <div className="rounded-xl bg-white border border-[#e5e4de] p-4 mb-4">
-                        <p className="text-xs font-medium text-[#87867f] uppercase mb-2">Instructions</p>
-                        <p className="text-sm text-[#141413] whitespace-pre-wrap">{content.instructions}</p>
-                      </div>
-                    )}
-
-                    {content.materials && content.materials.length > 0 && (
-                      <div className="rounded-xl bg-white border border-[#e5e4de] p-4 mb-4">
-                        <p className="text-xs font-medium text-[#87867f] uppercase mb-2">Materials Needed</p>
-                        <ul className="text-sm text-[#141413] space-y-1">
-                          {content.materials.map((m: string, i: number) => (
-                            <li key={i} className="flex items-center gap-2">
-                              <ChevronRight className="h-3 w-3 text-[#c96442]" />
-                              {m}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    <Button
-                      onClick={() => {
-                        toggleLesson(selectedLesson);
-                        setSelectedLesson(null);
-                      }}
-                      className={`w-full h-12 rounded-xl ${
-                        selectedLesson.completed
-                          ? "bg-[#e5e4de] text-[#5e5d59] hover:bg-[#dddcd6]"
-                          : "bg-[#c96442] hover:bg-[#b5593a] text-white"
-                      }`}
-                    >
-                      {selectedLesson.completed ? "Mark as Incomplete" : "Mark as Complete ✓"}
-                    </Button>
-                  </>
-                );
-              })()}
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
