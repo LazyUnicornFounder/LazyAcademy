@@ -14,11 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
+      child_interests: {
+        Row: {
+          child_id: string
+          created_at: string | null
+          id: string
+          interest: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string | null
+          id?: string
+          interest: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string | null
+          id?: string
+          interest?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_interests_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      child_preferences: {
+        Row: {
+          child_id: string
+          created_at: string | null
+          id: string
+          preference: string
+        }
+        Insert: {
+          child_id: string
+          created_at?: string | null
+          id?: string
+          preference: string
+        }
+        Update: {
+          child_id?: string
+          created_at?: string | null
+          id?: string
+          preference?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "child_preferences_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      children: {
+        Row: {
+          age: number
+          avatar_url: string | null
+          created_at: string | null
+          id: string
+          name: string
+          user_id: string
+        }
+        Insert: {
+          age: number
+          avatar_url?: string | null
+          created_at?: string | null
+          id?: string
+          name: string
+          user_id: string
+        }
+        Update: {
+          age?: number
+          avatar_url?: string | null
+          created_at?: string | null
+          id?: string
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      learning_schedules: {
+        Row: {
+          child_id: string
+          created_at: string | null
+          days: string[]
+          id: string
+          minutes_per_day: number
+        }
+        Insert: {
+          child_id: string
+          created_at?: string | null
+          days?: string[]
+          id?: string
+          minutes_per_day?: number
+        }
+        Update: {
+          child_id?: string
+          created_at?: string | null
+          days?: string[]
+          id?: string
+          minutes_per_day?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_schedules_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string | null
           email: string
           id: string
+          onboarding_complete: boolean | null
           plan: string | null
           polar_customer_id: string | null
         }
@@ -26,6 +144,7 @@ export type Database = {
           created_at?: string | null
           email: string
           id: string
+          onboarding_complete?: boolean | null
           plan?: string | null
           polar_customer_id?: string | null
         }
@@ -33,6 +152,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           id?: string
+          onboarding_complete?: boolean | null
           plan?: string | null
           polar_customer_id?: string | null
         }
