@@ -186,7 +186,7 @@ Return this exact JSON structure:
   ]
 }
 
-Create ${schedule.days.length} lessons per week, 4 modules total. Each lesson ≈${schedule.minutes_per_day} minutes. Never use type "video". Make lessons fun, age-appropriate, and creative.`;
+Create ${schedule.days.length} lessons per week, 4 modules total. Each lesson ≈${schedule.minutes_per_day} minutes. Never use type "video". Make lessons fun, age-appropriate, and creative. IMPORTANT: Each lesson's "instructions" field must contain REAL teaching content (multiple paragraphs with facts and explanations), not just "Read about X" or "Learn about Y". The content must realistically take ${schedule.minutes_per_day} minutes to complete including reading and all exercises.`;
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) return jsonResponse({ error: "AI API key not configured" }, 500);
