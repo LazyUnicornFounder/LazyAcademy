@@ -326,6 +326,18 @@ const LessonDetail = () => {
           </>
         )}
       </AnimatePresence>
+      {/* XP Gain */}
+      {engagementResult && <XpGainIndicator xp={engagementResult.xpGained} show={showXpGain} />}
+
+      {/* Daily Challenge Badge */}
+      {lesson.is_daily_challenge && (
+        <div className="container max-w-2xl pt-4">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#c96442]/10 w-fit">
+            <Star className="h-4 w-4 text-[#c96442]" />
+            <span className="text-xs font-medium text-[#c96442]">Daily Challenge • 30 XP</span>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <header className="border-b border-[#e5e4de] bg-[#faf9f5]">
@@ -424,12 +436,9 @@ const LessonDetail = () => {
         </motion.div>
       </div>
 
-      {/* Celebration modal */}
+      {/* Module celebration modal */}
       <Dialog open={showCelebration} onOpenChange={(open) => {
-        if (!open) {
-          setShowCelebration(false);
-          navigate("/app");
-        }
+        if (!open) { setShowCelebration(false); navigate("/app"); }
       }}>
         <DialogContent className="bg-[#faf9f5] border-[#e5e4de] rounded-2xl max-w-sm text-center">
           <motion.div
@@ -442,8 +451,8 @@ const LessonDetail = () => {
             <h2 className="font-serif text-2xl font-medium text-[#141413] mb-2">
               Week {celebrationData?.weekNumber} Complete!
             </h2>
-            <p className="text-[#5e5d59] text-sm mb-6">
-              You finished {celebrationData?.lessonsCount} lessons with a {celebrationData?.streak}-day streak!
+            <p className="text-[#5e5d59] text-sm mb-4">
+              +{engagementResult?.xpGained || 0} XP earned
             </p>
             <div className="flex items-center justify-center gap-2 mb-6">
               <Sparkles className="h-4 w-4 text-[#c96442]" />
@@ -459,6 +468,28 @@ const LessonDetail = () => {
           </motion.div>
         </DialogContent>
       </Dialog>
+
+      {/* Level Up modal */}
+      {engagementResult && (
+        <LevelUpModal
+          open={showLevelUp}
+          onClose={() => {
+            setShowLevelUp(false);
+            if (engagementResult.newBadges.length > 0) setShowBadges(true);
+            else navigate("/app");
+          }}
+          result={engagementResult}
+        />
+      )}
+
+      {/* Badge earned modal */}
+      {engagementResult && (
+        <BadgeEarnedModal
+          open={showBadges}
+          onClose={() => { setShowBadges(false); navigate("/app"); }}
+          badgeTypes={engagementResult.newBadges}
+        />
+      )}
     </div>
   );
 };
