@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import {
   GraduationCap, Flame, Lock, Eye, BookOpen, Wrench, Headphones,
   Gamepad2, HelpCircle, Check, LogOut, ChevronRight, Crown, Sparkles,
-  MoreHorizontal, RefreshCw,
+  MoreHorizontal, RefreshCw, Star, Trophy, Volume2, VolumeX, TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -15,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getMuted, setMuted } from "@/lib/sounds";
+import { xpForNextLevel } from "@/lib/engagement";
 
 const LESSON_ICONS: Record<string, any> = {
   video: Eye,
@@ -57,6 +59,7 @@ interface Lesson {
   completed: boolean;
   completed_at: string | null;
   content_json: any;
+  is_daily_challenge: boolean;
 }
 
 interface ProgressData {
@@ -108,6 +111,8 @@ const Dashboard = () => {
   const [currentPlan, setCurrentPlan] = useState("free");
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState<string | null>(null);
+  const [rewards, setRewards] = useState<{ xp_total: number; level: number } | null>(null);
+  const [soundMuted, setSoundMuted] = useState(getMuted());
 
   const activeChild = children[activeChildIdx];
 
@@ -164,14 +169,16 @@ const Dashboard = () => {
 
   const loadChildData = async (childId: string) => {
     setDataLoading(true);
-    const [modsRes, lessonsRes, progRes] = await Promise.all([
+    const [modsRes, lessonsRes, progRes, rewardsRes] = await Promise.all([
       supabase.from("curriculum_modules").select("*").eq("child_id", childId).order("week_number"),
       supabase.from("lessons").select("*").eq("child_id", childId).order("day_number"),
       supabase.from("child_progress").select("*").eq("child_id", childId).single(),
+      supabase.from("child_rewards").select("*").eq("child_id", childId).single(),
     ]);
     setModules(modsRes.data || []);
     setLessons(lessonsRes.data || []);
     setProgress(progRes.data || null);
+    setRewards(rewardsRes.data || null);
     setDataLoading(false);
   };
 
@@ -213,6 +220,7 @@ const Dashboard = () => {
   const completedInModule = activeModuleLessons.filter((l) => l.completed).length;
   const moduleProgress = activeModuleLessons.length > 0 ? (completedInModule / activeModuleLessons.length) * 100 : 0;
   const lockedModules = modules.filter((m) => m.status === "locked");
+  const dailyChallenge = lessons.find((l) => l.is_daily_challenge && !l.completed);
 
   // Weekly progress for bar chart (last 7 day_numbers)
   const weekDays = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -226,13 +234,32 @@ const Dashboard = () => {
             <GraduationCap className="h-6 w-6 text-[#c96442]" />
             <span className="font-serif text-lg text-[#141413]">LazyAcademy</span>
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {rewards && (
+              <button
+                onClick={() => navigate("/app/my-stuff")}
+                className="flex items-center gap-1.5 text-xs font-medium text-[#5e5d59] hover:text-[#141413] transition-colors px-2.5 py-1.5 rounded-lg bg-[#f5f4ed]"
+              >
+                <TrendingUp className="h-3.5 w-3.5 text-[#c96442]" />
+                <span>Lv.{rewards.level}</span>
+                <span className="text-[#87867f]">•</span>
+                <span>{rewards.xp_total} XP</span>
+              </button>
+            )}
             {progress && (
               <div className="flex items-center gap-1.5 text-sm font-medium text-[#c96442]">
                 <Flame className="h-4 w-4" />
                 <span>{progress.current_streak}</span>
               </div>
             )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 text-[#87867f] hover:text-[#141413]"
+              onClick={() => { const m = !soundMuted; setSoundMuted(m); setMuted(m); }}
+            >
+              {soundMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </Button>
             <Button
               variant="ghost"
               size="sm"
@@ -269,13 +296,40 @@ const Dashboard = () => {
         {/* Child header */}
         {activeChild && (
           <div className="flex items-center gap-4 mb-8">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf9f5] border border-[#e5e4de] text-2xl">
-              {AVATARS[activeChild.avatar_url || "owl"] || "🦉"}
+            <div className="relative">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#faf9f5] border border-[#e5e4de] text-2xl">
+                {AVATARS[activeChild.avatar_url || "owl"] || "🦉"}
+              </div>
+              {rewards && (
+                <div className="absolute -bottom-1 -right-1 bg-[#c96442] text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full">
+                  {rewards.level}
+                </div>
+              )}
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="font-serif text-2xl text-[#141413]">{activeChild.name}'s Dashboard</h1>
               <p className="text-sm text-[#87867f]">Age {activeChild.age} • {progress?.total_lessons_completed || 0} lessons completed</p>
+              {rewards && (
+                <div className="flex items-center gap-2 mt-1.5">
+                  <div className="h-1.5 flex-1 max-w-[120px] rounded-full bg-[#e5e4de] overflow-hidden">
+                    <div
+                      className="h-full bg-[#c96442] rounded-full transition-all"
+                      style={{ width: `${(xpForNextLevel(rewards.xp_total).current / 100) * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] text-[#87867f]">{xpForNextLevel(rewards.xp_total).current}/100 XP</span>
+                </div>
+              )}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate("/app/my-stuff")}
+              className="border-[#e5e4de] text-[#5e5d59] rounded-xl text-xs"
+            >
+              <Trophy className="h-3.5 w-3.5 mr-1" />
+              My Stuff
+            </Button>
           </div>
         )}
 
@@ -368,6 +422,29 @@ const Dashboard = () => {
           </div>
         ) : (
           <div className="space-y-8">
+            {/* Daily Challenge */}
+            {dailyChallenge && (
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={() => navigate(`/app/lesson/${dailyChallenge.id}`)}
+                className="w-full rounded-2xl bg-[#c96442]/5 border border-[#c96442]/20 p-5 flex items-center gap-4 text-left transition-all hover:shadow-[0_2px_8px_rgba(0,0,0,0.05)]"
+              >
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#c96442]/10">
+                  <Star className="h-6 w-6 text-[#c96442]" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <p className="text-xs font-medium text-[#c96442] uppercase tracking-wide">Daily Challenge</p>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#c96442]/10 text-[#c96442] font-medium">30 XP</span>
+                  </div>
+                  <p className="text-sm font-medium text-[#141413]">{dailyChallenge.title}</p>
+                  <p className="text-xs text-[#87867f] mt-0.5">{dailyChallenge.duration_minutes} min</p>
+                </div>
+                <ChevronRight className="h-5 w-5 text-[#c96442]" />
+              </motion.button>
+            )}
+
             {/* Active module featured card */}
             {activeModule && (
               <motion.div

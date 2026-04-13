@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,12 +6,15 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Eye, BookOpen, Wrench, Headphones, Gamepad2, HelpCircle,
-  Check, X, ChevronRight, Clock, Sparkles,
+  Check, X, ChevronRight, Clock, Sparkles, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { awardLessonCompletion, type EngagementResult } from "@/lib/engagement";
+import { LevelUpModal, BadgeEarnedModal, XpGainIndicator } from "@/components/engagement/EngagementModals";
+import { playDing, playApplause, playLevelUp } from "@/lib/sounds";
 
 const TYPE_CONFIG: Record<string, { icon: any; color: string; bg: string; label: string }> = {
   video: { icon: Eye, color: "text-blue-700", bg: "bg-blue-100", label: "Video" },
@@ -28,7 +31,7 @@ interface QuizQuestion {
   answer: string;
 }
 
-const QuizComponent = ({ questions, onComplete }: { questions: QuizQuestion[]; onComplete: () => void }) => {
+const QuizComponent = ({ questions, onComplete }: { questions: QuizQuestion[]; onComplete: (score: { correct: number; total: number }) => void }) => {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [selected, setSelected] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
@@ -48,7 +51,7 @@ const QuizComponent = ({ questions, onComplete }: { questions: QuizQuestion[]; o
 
   const handleNext = () => {
     if (isLast) {
-      onComplete();
+      onComplete({ correct: score + (selected === q.answer ? 1 : 0), total: questions.length });
       return;
     }
     setSelected(null);
@@ -133,6 +136,11 @@ const LessonDetail = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationData, setCelebrationData] = useState<any>(null);
+  const [engagementResult, setEngagementResult] = useState<EngagementResult | null>(null);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [showBadges, setShowBadges] = useState(false);
+  const [showXpGain, setShowXpGain] = useState(false);
+  const quizScoreRef = useRef<{ correct: number; total: number } | undefined>(undefined);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -170,7 +178,7 @@ const LessonDetail = () => {
         .update({ completed: true, completed_at: new Date().toISOString() })
         .eq("id", lesson.id);
 
-      // Get progress
+      // Update streak in child_progress
       const { data: prog } = await supabase
         .from("child_progress")
         .select("*")
@@ -186,64 +194,73 @@ const LessonDetail = () => {
         let newStreak = 1;
         if (lastActivity) {
           const lastDay = lastActivity.toDateString();
-          const yesterdayStr = yesterday.toDateString();
-          const todayStr = now.toDateString();
-          if (lastDay === todayStr) newStreak = prog.current_streak;
-          else if (lastDay === yesterdayStr) newStreak = prog.current_streak + 1;
+          if (lastDay === now.toDateString()) newStreak = prog.current_streak;
+          else if (lastDay === yesterday.toDateString()) newStreak = prog.current_streak + 1;
         }
 
-        const newLongest = Math.max(prog.longest_streak, newStreak);
         await supabase
           .from("child_progress")
           .update({
             total_lessons_completed: prog.total_lessons_completed + 1,
             current_streak: newStreak,
-            longest_streak: newLongest,
+            longest_streak: Math.max(prog.longest_streak, newStreak),
             last_activity_at: now.toISOString(),
           })
           .eq("child_id", lesson.child_id);
       }
 
-      // Check if all lessons in module are complete
-      const { data: moduleLessons } = await supabase
-        .from("lessons")
-        .select("id, completed")
-        .eq("module_id", lesson.module_id);
+      // Award XP & check badges
+      const result = await awardLessonCompletion(
+        lesson.child_id,
+        lesson.id,
+        lesson.module_id,
+        lesson.is_daily_challenge || false,
+        quizScoreRef.current
+      );
+      setEngagementResult(result);
 
-      const allComplete = moduleLessons?.every((l) => l.id === lesson.id || l.completed);
+      // Play sound & show XP
+      playDing();
+      setShowXpGain(true);
+      setTimeout(() => setShowXpGain(false), 1500);
 
-      if (allComplete && module) {
-        // Mark module completed
-        await supabase
-          .from("curriculum_modules")
-          .update({ status: "completed" })
-          .eq("id", module.id);
-
-        // Unlock next module
+      if (result.isModuleComplete && module) {
+        // Mark module completed & unlock next
+        await supabase.from("curriculum_modules").update({ status: "completed" }).eq("id", module.id);
         const { data: nextMod } = await supabase
           .from("curriculum_modules")
           .select("id")
           .eq("child_id", lesson.child_id)
           .eq("week_number", module.week_number + 1)
           .single();
-
         if (nextMod) {
-          await supabase
-            .from("curriculum_modules")
-            .update({ status: "active" })
-            .eq("id", nextMod.id);
+          await supabase.from("curriculum_modules").update({ status: "active" }).eq("id", nextMod.id);
         }
 
-        // Show celebration
+        playApplause();
+        setShowConfetti(true);
         setCelebrationData({
           weekNumber: module.week_number,
-          lessonsCount: moduleLessons?.length || 0,
+          lessonsCount: result.xpGained,
           streak: prog?.current_streak || 1,
         });
-
-        setShowConfetti(true);
         setShowCelebration(true);
         setTimeout(() => setShowConfetti(false), 3000);
+      } else if (result.newLevel > result.oldLevel) {
+        // Level up!
+        playLevelUp();
+        setShowConfetti(true);
+        setTimeout(() => {
+          setShowConfetti(false);
+          setShowLevelUp(true);
+        }, 800);
+      } else if (result.newBadges.length > 0) {
+        // Badge earned
+        setShowConfetti(true);
+        setTimeout(() => {
+          setShowConfetti(false);
+          setShowBadges(true);
+        }, 800);
       } else {
         // Just confetti + navigate back
         setShowConfetti(true);
@@ -309,6 +326,18 @@ const LessonDetail = () => {
           </>
         )}
       </AnimatePresence>
+      {/* XP Gain */}
+      {engagementResult && <XpGainIndicator xp={engagementResult.xpGained} show={showXpGain} />}
+
+      {/* Daily Challenge Badge */}
+      {lesson.is_daily_challenge && (
+        <div className="container max-w-2xl pt-4">
+          <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-[#c96442]/10 w-fit">
+            <Star className="h-4 w-4 text-[#c96442]" />
+            <span className="text-xs font-medium text-[#c96442]">Daily Challenge • 30 XP</span>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <header className="border-b border-[#e5e4de] bg-[#faf9f5]">
@@ -379,7 +408,7 @@ const LessonDetail = () => {
 
           {/* Quiz */}
           {content.quiz && content.quiz.length > 0 && (
-            <QuizComponent questions={content.quiz} onComplete={() => {}} />
+            <QuizComponent questions={content.quiz} onComplete={(score) => { quizScoreRef.current = score; }} />
           )}
 
           {/* Mark Complete */}
@@ -407,12 +436,9 @@ const LessonDetail = () => {
         </motion.div>
       </div>
 
-      {/* Celebration modal */}
+      {/* Module celebration modal */}
       <Dialog open={showCelebration} onOpenChange={(open) => {
-        if (!open) {
-          setShowCelebration(false);
-          navigate("/app");
-        }
+        if (!open) { setShowCelebration(false); navigate("/app"); }
       }}>
         <DialogContent className="bg-[#faf9f5] border-[#e5e4de] rounded-2xl max-w-sm text-center">
           <motion.div
@@ -425,8 +451,8 @@ const LessonDetail = () => {
             <h2 className="font-serif text-2xl font-medium text-[#141413] mb-2">
               Week {celebrationData?.weekNumber} Complete!
             </h2>
-            <p className="text-[#5e5d59] text-sm mb-6">
-              You finished {celebrationData?.lessonsCount} lessons with a {celebrationData?.streak}-day streak!
+            <p className="text-[#5e5d59] text-sm mb-4">
+              +{engagementResult?.xpGained || 0} XP earned
             </p>
             <div className="flex items-center justify-center gap-2 mb-6">
               <Sparkles className="h-4 w-4 text-[#c96442]" />
@@ -442,6 +468,28 @@ const LessonDetail = () => {
           </motion.div>
         </DialogContent>
       </Dialog>
+
+      {/* Level Up modal */}
+      {engagementResult && (
+        <LevelUpModal
+          open={showLevelUp}
+          onClose={() => {
+            setShowLevelUp(false);
+            if (engagementResult.newBadges.length > 0) setShowBadges(true);
+            else navigate("/app");
+          }}
+          result={engagementResult}
+        />
+      )}
+
+      {/* Badge earned modal */}
+      {engagementResult && (
+        <BadgeEarnedModal
+          open={showBadges}
+          onClose={() => { setShowBadges(false); navigate("/app"); }}
+          badgeTypes={engagementResult.newBadges}
+        />
+      )}
     </div>
   );
 };
