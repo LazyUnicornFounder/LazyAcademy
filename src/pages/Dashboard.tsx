@@ -293,6 +293,80 @@ const Dashboard = () => {
           </div>
         )}
 
+        {/* Plan section */}
+        <div className="rounded-2xl bg-[#faf9f5] border border-[#e5e4de] p-6 mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-[#c96442]" />
+              <h3 className="font-serif text-lg text-[#141413]">Your Plan</h3>
+            </div>
+            <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#c96442]/10 text-[#c96442] capitalize">
+              {currentPlan}
+            </span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {PLANS.map((plan) => {
+              const isCurrent = currentPlan === plan.id;
+              const isDowngrade = (currentPlan === "premium" && plan.id !== "premium") ||
+                (currentPlan === "family" && plan.id === "free");
+              return (
+                <div
+                  key={plan.id}
+                  className={`rounded-xl border p-4 transition-all ${
+                    isCurrent
+                      ? "border-[#c96442] bg-[#c96442]/5"
+                      : plan.featured
+                      ? "border-[#c96442]/30 bg-white"
+                      : "border-[#e5e4de] bg-white"
+                  }`}
+                >
+                  {plan.featured && !isCurrent && (
+                    <div className="flex items-center gap-1 text-[10px] font-medium text-[#c96442] mb-2">
+                      <Sparkles className="h-3 w-3" />
+                      Most popular
+                    </div>
+                  )}
+                  <div className="flex items-baseline gap-1 mb-2">
+                    <span className="font-serif text-xl text-[#141413]">{plan.price}</span>
+                    <span className="text-xs text-[#87867f]">{plan.period}</span>
+                  </div>
+                  <ul className="space-y-1.5 mb-4">
+                    {plan.features.map((f) => (
+                      <li key={f} className="flex items-start gap-1.5 text-xs text-[#5e5d59]">
+                        <Check className="h-3 w-3 text-[#c96442] mt-0.5 shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  {isCurrent ? (
+                    <Button
+                      disabled
+                      variant="outline"
+                      size="sm"
+                      className="w-full rounded-lg text-xs h-8 border-[#c96442]/30 text-[#c96442]"
+                    >
+                      Current Plan
+                    </Button>
+                  ) : isDowngrade ? null : (
+                    <Button
+                      size="sm"
+                      className={`w-full rounded-lg text-xs h-8 ${
+                        plan.featured
+                          ? "bg-[#c96442] hover:bg-[#b5593a] text-white"
+                          : "bg-[#141413] hover:bg-[#141413]/90 text-white"
+                      }`}
+                      disabled={checkoutLoading === plan.id}
+                      onClick={() => handleUpgrade(plan.polarProductId, plan.id)}
+                    >
+                      {checkoutLoading === plan.id ? "Loading..." : `Upgrade to ${plan.name}`}
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
         {dataLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-48 rounded-2xl" />
