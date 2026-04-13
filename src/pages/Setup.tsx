@@ -49,6 +49,7 @@ const Setup = () => {
   const [step, setStep] = useState(1);
   const [direction, setDirection] = useState(1);
   const [saving, setSaving] = useState(false);
+  const [insertedChildIds, setInsertedChildIds] = useState<string[]>([]);
   // Track which child index we're configuring for interests/preferences/schedule
   const [currentChildIdx, setCurrentChildIdx] = useState(0);
 
@@ -124,6 +125,8 @@ const Setup = () => {
 
       if (childErr) throw childErr;
       if (!insertedChildren) throw new Error("No children returned");
+
+      setInsertedChildIds(insertedChildren.map((c) => c.id));
 
       // Insert interests, preferences, schedules per child
       for (let i = 0; i < insertedChildren.length; i++) {
@@ -233,7 +236,7 @@ const Setup = () => {
           />
         );
       case 6:
-        return <StepDone data={data} onNavigate={() => navigate("/app")} />;
+        return <StepDone data={data} childIds={insertedChildIds} onNavigate={() => navigate("/app")} />;
       default:
         return null;
     }
