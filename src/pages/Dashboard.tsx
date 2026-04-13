@@ -6,9 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import {
   GraduationCap, Flame, Lock, BookOpen, Wrench, Headphones,
-  Gamepad2, HelpCircle, Check, LogOut, ChevronRight, Crown, Sparkles,
-  MoreHorizontal, RefreshCw, Star, Trophy, Volume2, VolumeX, TrendingUp,
-  RotateCcw, Rocket, Settings, Users, Camera, Upload,
+  Gamepad2, HelpCircle, Check, ChevronRight, Crown, Sparkles,
+  MoreHorizontal, RefreshCw, Star, Trophy, TrendingUp,
+  RotateCcw, Rocket, Settings, Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
