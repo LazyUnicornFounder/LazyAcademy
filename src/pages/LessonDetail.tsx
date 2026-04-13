@@ -136,6 +136,11 @@ const LessonDetail = () => {
   const [showConfetti, setShowConfetti] = useState(false);
   const [showCelebration, setShowCelebration] = useState(false);
   const [celebrationData, setCelebrationData] = useState<any>(null);
+  const [engagementResult, setEngagementResult] = useState<EngagementResult | null>(null);
+  const [showLevelUp, setShowLevelUp] = useState(false);
+  const [showBadges, setShowBadges] = useState(false);
+  const [showXpGain, setShowXpGain] = useState(false);
+  const quizScoreRef = useRef<{ correct: number; total: number } | undefined>(undefined);
 
   useEffect(() => {
     if (!user || !id) return;
