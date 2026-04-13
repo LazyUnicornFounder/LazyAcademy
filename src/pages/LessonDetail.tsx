@@ -421,6 +421,42 @@ const LessonDetail = () => {
             </div>
           )}
 
+          {/* Interactive exercises */}
+          {content.exercises && content.exercises.length > 0 && (
+            <div className="space-y-4">
+              <p className="text-xs font-medium text-[#87867f] uppercase tracking-wide">Interactive exercises</p>
+              {content.exercises.map((ex: any, i: number) => {
+                if (ex.type === "matching" && ex.data?.pairs) {
+                  return <MatchingExercise key={i} pairs={ex.data.pairs} />;
+                }
+                if (ex.type === "fill_blank" && ex.data) {
+                  return (
+                    <FillBlankExercise
+                      key={i}
+                      sentence={ex.data.sentence}
+                      options={ex.data.options}
+                      answer={ex.data.answer}
+                    />
+                  );
+                }
+                if (ex.type === "sorting" && ex.data) {
+                  return (
+                    <SortingExercise
+                      key={i}
+                      items={ex.data.items}
+                      correctOrder={ex.data.correct_order}
+                      instruction={ex.data.instruction}
+                    />
+                  );
+                }
+                if (ex.type === "drawing" && ex.data?.prompt) {
+                  return <DrawingExercise key={i} prompt={ex.data.prompt} />;
+                }
+                return null;
+              })}
+            </div>
+          )}
+
           {/* Quiz */}
           {content.quiz && content.quiz.length > 0 && (
             <QuizComponent questions={content.quiz} onComplete={(score) => { quizScoreRef.current = score; }} />
