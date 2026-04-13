@@ -107,7 +107,34 @@ serve(async (req) => {
     const schedule = schedRes.data || { minutes_per_day: 30, days: ["Mon", "Tue", "Wed", "Thu", "Fri"] };
     const difficultyLevel = progRes.data?.difficulty_level || 2;
 
-    const systemPrompt = `You are a children's education curriculum designer. Create a 4-week curriculum blending interests into themed modules. Each week is one module with daily lessons. LazyAcademy is VIDEO-FREE — never include video content or YouTube references. Lesson types: read, hands_on, audio, game, quiz only. Each lesson should include 1-2 interactive exercises from these types:
+    const childAge = child.age || 7;
+    const ageRules = childAge <= 5
+      ? `AGE GROUP 3-5: Use only simple sentences. No quizzes longer than 3 questions. No reading-heavy lessons. Only matching and drawing exercises allowed.`
+      : childAge <= 9
+      ? `AGE GROUP 6-9: Short paragraphs, basic vocabulary. Exercises can include fill-in-the-blank, matching, and drawing.`
+      : childAge <= 12
+      ? `AGE GROUP 10-12: Full paragraphs allowed. Can include sorting and more complex quizzes.`
+      : `AGE GROUP 13-16: Can discuss historical conflicts, basic economics, more nuanced topics. Still no graphic or explicit content.`;
+
+    const systemPrompt = `STRICT RULES: You are generating content for children ages 3-16. You MUST follow these rules with zero exceptions:
+- No violence, weapons, gore, death descriptions, or war details beyond basic historical facts
+- No sexual content, romance, innuendo, or body image commentary
+- No horror, scary imagery, dark themes, nightmares, or creepy scenarios
+- No drugs, alcohol, smoking, or substance references
+- No profanity, slang insults, or mean-spirited humor
+- No religious bias — mention religions only as neutral historical/cultural facts
+- No political opinions or partisan content
+- No dangerous activities kids could imitate (fire, chemicals, sharp tools, heights) unless explicitly marked as 'with adult supervision'
+- No content that could cause anxiety about death, divorce, illness, or abandonment
+- No stereotypes about gender, race, ethnicity, body type, or disability
+- All quiz answers must be factually accurate — never trick questions
+- Tone must be encouraging, curious, and positive. Never shame wrong answers.
+- When discussing animals: no graphic predator/prey descriptions
+- When discussing history: age-appropriate framing, focus on courage and progress not suffering
+
+${ageRules}
+
+You are a children's education curriculum designer. Create a 4-week curriculum blending interests into themed modules. Each week is one module with daily lessons. LazyAcademy is VIDEO-FREE — never include video content or YouTube references. Lesson types: read, hands_on, audio, game, quiz only. Each lesson should include 1-2 interactive exercises from these types:
 - matching: pairs of items to connect. Data: { pairs: [{ left: "item", right: "match" }] }
 - fill_blank: sentence with missing word. Data: { sentence: "The ___ is...", options: ["a","b","c","d"], answer: "b" }
 - sorting: put items in correct order. Data: { items: ["c","a","b"], correct_order: ["a","b","c"], instruction: "Sort by..." }
@@ -194,6 +221,68 @@ Create ${schedule.days.length} lessons per week, 4 modules total. Each lesson �
     }
 
     const modules = curriculum.modules || [];
+
+    // Content moderation: verify all lessons are kid-safe
+    const allLessonsFlat = modules.flatMap((mod: any) => mod.lessons || []);
+    try {
+      const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+      if (LOVABLE_API_KEY && allLessonsFlat.length > 0) {
+        const modResponse = await fetch(`${supabaseUrl}/functions/v1/moderate-content`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+          },
+          body: JSON.stringify({ lessons: allLessonsFlat, child_age: child.age }),
+        });
+
+        if (modResponse.ok) {
+          const modResult = await modResponse.json();
+          if (!modResult.safe && modResult.flags?.length > 0) {
+            console.log("Content moderation flagged issues:", JSON.stringify(modResult.flags));
+            // Regenerate flagged lessons inline
+            for (const flag of modResult.flags) {
+              const idx = flag.lesson_index;
+              if (idx >= 0 && idx < allLessonsFlat.length) {
+                const flaggedLesson = allLessonsFlat[idx];
+                const regenResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${LOVABLE_API_KEY}`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    model: "google/gemini-2.5-flash",
+                    messages: [
+                      { role: "system", content: systemPrompt },
+                      { role: "user", content: `The previous version of lesson "${flaggedLesson.title}" was flagged for: ${flag.issue}. Rewrite this single lesson to avoid this issue. Keep the same type (${flaggedLesson.type}) and duration (${flaggedLesson.duration_minutes} min). Return JSON only: { "title": "...", "description": "...", "type": "...", "duration_minutes": N, "day_number": ${flaggedLesson.day_number}, "image_prompt": "...", "content_json": { ... } }` },
+                    ],
+                  }),
+                });
+                if (regenResponse.ok) {
+                  const regenData = await regenResponse.json();
+                  const raw = regenData.choices?.[0]?.message?.content || "";
+                  try {
+                    const fixed = JSON.parse(raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim());
+                    // Find and replace in the module
+                    for (const mod of modules) {
+                      const lessonIdx = (mod.lessons || []).findIndex((l: any) => l.title === flaggedLesson.title && l.day_number === flaggedLesson.day_number);
+                      if (lessonIdx >= 0) {
+                        mod.lessons[lessonIdx] = { ...mod.lessons[lessonIdx], ...fixed };
+                        break;
+                      }
+                    }
+                  } catch { console.error("Failed to parse regenerated lesson"); }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (modErr) {
+      console.error("Moderation check failed (proceeding anyway):", modErr);
+    }
+
     for (const mod of modules) {
       const { data: insertedModule, error: modErr } = await supabase
         .from("curriculum_modules")
