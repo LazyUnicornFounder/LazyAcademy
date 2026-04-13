@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import {
   GraduationCap, Flame, Lock, Eye, BookOpen, Wrench, Headphones,
   Gamepad2, HelpCircle, Check, LogOut, ChevronRight, Crown, Sparkles,
-  MoreHorizontal, RefreshCw,
+  MoreHorizontal, RefreshCw, Star, Trophy, Volume2, VolumeX, TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -15,6 +15,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getMuted, setMuted } from "@/lib/sounds";
+import { xpForNextLevel } from "@/lib/engagement";
 
 const LESSON_ICONS: Record<string, any> = {
   video: Eye,
