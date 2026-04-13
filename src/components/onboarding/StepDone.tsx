@@ -3,36 +3,58 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 import { OnboardingData } from "@/pages/Setup";
+import { supabase } from "@/integrations/supabase/client";
 
 const funFacts = [
   "Kids who follow their interests learn 3x faster! 🚀",
   "Short daily lessons beat long weekly sessions 📚",
   "Mixing subjects improves memory retention 🧠",
   "Creativity boosts problem-solving skills 🎨",
+  "Hands-on activities build deeper understanding 🔧",
+  "A consistent schedule builds great habits 📅",
 ];
 
 interface Props {
   data: OnboardingData;
+  childIds: string[];
   onNavigate: () => void;
 }
 
-const StepDone = ({ data, onNavigate }: Props) => {
+const StepDone = ({ data, childIds, onNavigate }: Props) => {
   const [factIndex, setFactIndex] = useState(0);
-  const [ready, setReady] = useState(false);
+  const [generating, setGenerating] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const firstName = data.children[0]?.name || "your child";
 
   useEffect(() => {
     const factTimer = setInterval(() => {
       setFactIndex((i) => (i + 1) % funFacts.length);
-    }, 2000);
-
-    const readyTimer = setTimeout(() => setReady(true), 3000);
-
-    return () => {
-      clearInterval(factTimer);
-      clearTimeout(readyTimer);
-    };
+    }, 2500);
+    return () => clearInterval(factTimer);
   }, []);
+
+  useEffect(() => {
+    if (childIds.length === 0) return;
+    generateCurricula();
+  }, [childIds]);
+
+  const generateCurricula = async () => {
+    setGenerating(true);
+    setError(null);
+    try {
+      for (const childId of childIds) {
+        const { error: fnErr } = await supabase.functions.invoke("generate-curriculum", {
+          body: { child_id: childId },
+        });
+        if (fnErr) throw fnErr;
+      }
+    } catch (e: any) {
+      console.error("Curriculum generation failed:", e);
+      setError(e.message || "Failed to generate curriculum");
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <div className="text-center space-y-8 py-8">
@@ -47,9 +69,19 @@ const StepDone = ({ data, onNavigate }: Props) => {
 
       <div>
         <h2 className="font-serif text-2xl text-foreground">
-          We're building {firstName}'s curriculum!
+          {generating
+            ? `Building ${firstName}'s curriculum...`
+            : error
+            ? "Something went wrong"
+            : `${firstName}'s curriculum is ready!`}
         </h2>
-        <p className="text-sm text-muted-foreground mt-2">This will just take a moment...</p>
+        <p className="text-sm text-muted-foreground mt-2">
+          {generating
+            ? "Our AI is crafting personalized lessons. This takes about 30 seconds..."
+            : error
+            ? error
+            : "4 weeks of personalized learning awaits!"}
+        </p>
       </div>
 
       <motion.div
@@ -62,7 +94,7 @@ const StepDone = ({ data, onNavigate }: Props) => {
         <p className="text-sm text-muted-foreground">{funFacts[factIndex]}</p>
       </motion.div>
 
-      {!ready && (
+      {generating && (
         <div className="flex justify-center gap-1">
           {[0, 1, 2].map((i) => (
             <motion.div
@@ -75,10 +107,21 @@ const StepDone = ({ data, onNavigate }: Props) => {
         </div>
       )}
 
-      {ready && (
+      {!generating && !error && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <Button onClick={onNavigate} className="h-12 px-8 rounded-lg">
             Go to Dashboard 🎉
+          </Button>
+        </motion.div>
+      )}
+
+      {!generating && error && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 justify-center">
+          <Button variant="outline" onClick={generateCurricula} className="rounded-lg">
+            Try Again
+          </Button>
+          <Button onClick={onNavigate} className="rounded-lg">
+            Go to Dashboard Anyway
           </Button>
         </motion.div>
       )}
