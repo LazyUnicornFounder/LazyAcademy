@@ -503,6 +503,17 @@ const LessonDetail = () => {
               Back to Dashboard
             </Button>
           )}
+
+          {/* Report content */}
+          <div className="text-center pt-2">
+            <button
+              onClick={() => setShowReport(true)}
+              className="text-xs text-[#87867f] hover:text-[#c96442] transition-colors inline-flex items-center gap-1"
+            >
+              <Flag className="h-3 w-3" />
+              Report content
+            </button>
+          </div>
         </motion.div>
       </div>
 
