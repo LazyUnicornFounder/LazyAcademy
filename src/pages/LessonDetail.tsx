@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, BookOpen, Wrench, Headphones, Gamepad2, HelpCircle,
-  Check, X, ChevronRight, Clock, Sparkles, Star,
+  Check, X, ChevronRight, Clock, Sparkles, Star, Flag,
 } from "lucide-react";
 import { MatchingExercise } from "@/components/exercises/MatchingExercise";
 import { FillBlankExercise } from "@/components/exercises/FillBlankExercise";
@@ -15,7 +15,10 @@ import { DrawingExercise } from "@/components/exercises/DrawingExercise";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { awardLessonCompletion, type EngagementResult } from "@/lib/engagement";
 import { LevelUpModal, BadgeEarnedModal, XpGainIndicator } from "@/components/engagement/EngagementModals";
 import { playDing, playApplause, playLevelUp } from "@/lib/sounds";
@@ -144,6 +147,10 @@ const LessonDetail = () => {
   const [showBadges, setShowBadges] = useState(false);
   const [showXpGain, setShowXpGain] = useState(false);
   const quizScoreRef = useRef<{ correct: number; total: number } | undefined>(undefined);
+  const [showReport, setShowReport] = useState(false);
+  const [reportReason, setReportReason] = useState("Inappropriate");
+  const [reportDetails, setReportDetails] = useState("");
+  const [reportSubmitting, setReportSubmitting] = useState(false);
 
   useEffect(() => {
     if (!user || !id) return;
@@ -496,6 +503,17 @@ const LessonDetail = () => {
               Back to Dashboard
             </Button>
           )}
+
+          {/* Report content */}
+          <div className="text-center pt-2">
+            <button
+              onClick={() => setShowReport(true)}
+              className="text-xs text-[#87867f] hover:text-[#c96442] transition-colors inline-flex items-center gap-1"
+            >
+              <Flag className="h-3 w-3" />
+              Report content
+            </button>
+          </div>
         </motion.div>
       </div>
 
@@ -553,6 +571,53 @@ const LessonDetail = () => {
           badgeTypes={engagementResult.newBadges}
         />
       )}
+
+      {/* Report content modal */}
+      <Dialog open={showReport} onOpenChange={setShowReport}>
+        <DialogContent className="bg-[#faf9f5] border-[#e5e4de] rounded-2xl max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg text-[#141413]">What's wrong?</DialogTitle>
+          </DialogHeader>
+          <RadioGroup value={reportReason} onValueChange={setReportReason} className="space-y-3">
+            {["Inappropriate", "Scary", "Incorrect", "Other"].map((r) => (
+              <div key={r} className="flex items-center gap-2">
+                <RadioGroupItem value={r} id={`reason-${r}`} />
+                <Label htmlFor={`reason-${r}`} className="text-sm text-[#5e5d59]">{r}</Label>
+              </div>
+            ))}
+          </RadioGroup>
+          {reportReason === "Other" && (
+            <Textarea
+              value={reportDetails}
+              onChange={(e) => setReportDetails(e.target.value)}
+              placeholder="Tell us more..."
+              className="bg-white border-[#e5e4de] text-sm"
+              maxLength={500}
+            />
+          )}
+          <Button
+            disabled={reportSubmitting}
+            onClick={async () => {
+              if (!user || !lesson) return;
+              setReportSubmitting(true);
+              await supabase.from("content_reports").insert({
+                lesson_id: lesson.id,
+                user_id: user.id,
+                reason: reportReason,
+                details: reportReason === "Other" ? reportDetails : null,
+              });
+              setReportSubmitting(false);
+              setShowReport(false);
+              setReportReason("Inappropriate");
+              setReportDetails("");
+              toast({ title: "Report submitted", description: "Thank you for helping keep content safe." });
+            }}
+            className="w-full h-11 rounded-xl bg-[#c96442] hover:bg-[#b5593a] text-white"
+          >
+            {reportSubmitting ? "Submitting..." : "Submit Report"}
+          </Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -2,15 +2,16 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import {
   ArrowLeft, TrendingUp, Flame, Trophy, BookOpen, Star,
-  Clock, Calendar, Palette, ChevronRight, BarChart3,
+  Clock, Calendar, Palette, ChevronRight, BarChart3, Eye, RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Progress } from "@/components/ui/progress";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { BADGE_CONFIG } from "@/lib/engagement";
 
 const AVATARS: Record<string, string> = {
@@ -28,6 +29,7 @@ interface Child {
 const ParentDashboard = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const [children, setChildren] = useState<Child[]>([]);
   const [activeIdx, setActiveIdx] = useState(0);
@@ -44,6 +46,11 @@ const ParentDashboard = () => {
   const [drawings, setDrawings] = useState<any[]>([]);
   const [projectPhotos, setProjectPhotos] = useState<any[]>([]);
   const [selectedDrawing, setSelectedDrawing] = useState<string | null>(null);
+  const [modules, setModules] = useState<any[]>([]);
+  const [previewModule, setPreviewModule] = useState<any>(null);
+  const [previewLessons, setPreviewLessons] = useState<any[]>([]);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
 
   const activeChild = children[activeIdx];
 
@@ -87,11 +94,13 @@ const ParentDashboard = () => {
     // Calculate lessons by interest (using module titles as proxy)
     const allLessons = lessonsRes.data || [];
     // Get all modules for this child
-    const { data: modules } = await supabase
+    const { data: modulesData } = await supabase
       .from("curriculum_modules")
-      .select("id, title")
-      .eq("child_id", childId);
-    const moduleMap = new Map((modules || []).map((m: any) => [m.id, m.title]));
+      .select("id, title, description, theme_emoji, week_number, status")
+      .eq("child_id", childId)
+      .order("week_number");
+    setModules(modulesData || []);
+    const moduleMap = new Map((modulesData || []).map((m: any) => [m.id, m.title]));
 
     // Count completed lessons per module title
     const counts: Record<string, number> = {};
@@ -355,7 +364,50 @@ const ParentDashboard = () => {
               </motion.div>
             )}
 
-            {/* Project gallery */}
+            {/* Curriculum Modules - Preview Lessons */}
+            {modules.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.27 }}
+                className="rounded-2xl bg-[#faf9f5] border border-[#e5e4de] p-6"
+              >
+                <h3 className="font-serif text-base text-[#141413] mb-4">Curriculum Modules</h3>
+                <div className="space-y-3">
+                  {modules.map((mod: any) => (
+                    <div key={mod.id} className="flex items-center justify-between rounded-xl bg-white border border-[#e5e4de] px-4 py-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="text-lg">{mod.theme_emoji || "📚"}</span>
+                        <div className="min-w-0">
+                          <p className="text-sm text-[#141413] truncate">Week {mod.week_number}: {mod.title}</p>
+                          <p className="text-[10px] text-[#87867f] capitalize">{mod.status}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={async () => {
+                          setPreviewModule(mod);
+                          setPreviewLoading(true);
+                          const { data } = await supabase
+                            .from("lessons")
+                            .select("*")
+                            .eq("module_id", mod.id)
+                            .order("day_number");
+                          setPreviewLessons(data || []);
+                          setPreviewLoading(false);
+                        }}
+                        className="text-[#c96442] hover:text-[#b5593a] text-xs gap-1"
+                      >
+                        <Eye className="h-3.5 w-3.5" />
+                        Preview
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
             {projectPhotos.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -432,6 +484,83 @@ const ParentDashboard = () => {
         <DialogContent className="bg-[#faf9f5] border-[#e5e4de] rounded-2xl max-w-lg p-2">
           {selectedDrawing && (
             <img src={selectedDrawing} alt="Project" className="w-full rounded-xl" />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Preview Lessons Dialog */}
+      <Dialog open={!!previewModule} onOpenChange={() => setPreviewModule(null)}>
+        <DialogContent className="bg-[#faf9f5] border-[#e5e4de] rounded-2xl max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg text-[#141413]">
+              {previewModule?.theme_emoji} Week {previewModule?.week_number}: {previewModule?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {previewLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-20 rounded-xl" />
+              <Skeleton className="h-20 rounded-xl" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {previewLessons.map((lesson: any) => {
+                const content = lesson.content_json || {};
+                return (
+                  <div key={lesson.id} className="rounded-xl bg-white border border-[#e5e4de] p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <p className="text-sm font-medium text-[#141413]">
+                          Day {lesson.day_number}: {lesson.title}
+                        </p>
+                        <p className="text-xs text-[#87867f] mt-0.5">{lesson.type} • {lesson.duration_minutes}m</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={regeneratingId === lesson.id}
+                        onClick={async () => {
+                          setRegeneratingId(lesson.id);
+                          try {
+                            const { data, error } = await supabase.functions.invoke("regenerate-lesson", {
+                              body: { lesson_id: lesson.id, reason: "parent disapproval" },
+                            });
+                            if (error) throw error;
+                            // Refresh lessons
+                            const { data: refreshed } = await supabase
+                              .from("lessons")
+                              .select("*")
+                              .eq("module_id", previewModule.id)
+                              .order("day_number");
+                            setPreviewLessons(refreshed || []);
+                            toast({ title: "Lesson regenerated", description: "Content has been updated." });
+                          } catch (e: any) {
+                            toast({ title: "Error", description: e.message, variant: "destructive" });
+                          } finally {
+                            setRegeneratingId(null);
+                          }
+                        }}
+                        className="text-[#c96442] hover:text-[#b5593a] text-xs gap-1 flex-shrink-0"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${regeneratingId === lesson.id ? "animate-spin" : ""}`} />
+                        {regeneratingId === lesson.id ? "..." : "Regenerate"}
+                      </Button>
+                    </div>
+                    {lesson.description && (
+                      <p className="text-xs text-[#5e5d59] mb-2">{lesson.description}</p>
+                    )}
+                    {content.instructions && (
+                      <p className="text-xs text-[#87867f] whitespace-pre-wrap line-clamp-3">{content.instructions}</p>
+                    )}
+                    {content.quiz && content.quiz.length > 0 && (
+                      <p className="text-[10px] text-[#87867f] mt-1">📝 {content.quiz.length} quiz question{content.quiz.length > 1 ? "s" : ""}</p>
+                    )}
+                    {content.exercises && content.exercises.length > 0 && (
+                      <p className="text-[10px] text-[#87867f] mt-0.5">🎮 {content.exercises.length} exercise{content.exercises.length > 1 ? "s" : ""}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </DialogContent>
       </Dialog>
