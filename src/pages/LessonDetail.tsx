@@ -178,7 +178,7 @@ const LessonDetail = () => {
         .update({ completed: true, completed_at: new Date().toISOString() })
         .eq("id", lesson.id);
 
-      // Get progress
+      // Update streak in child_progress
       const { data: prog } = await supabase
         .from("child_progress")
         .select("*")
@@ -194,64 +194,73 @@ const LessonDetail = () => {
         let newStreak = 1;
         if (lastActivity) {
           const lastDay = lastActivity.toDateString();
-          const yesterdayStr = yesterday.toDateString();
-          const todayStr = now.toDateString();
-          if (lastDay === todayStr) newStreak = prog.current_streak;
-          else if (lastDay === yesterdayStr) newStreak = prog.current_streak + 1;
+          if (lastDay === now.toDateString()) newStreak = prog.current_streak;
+          else if (lastDay === yesterday.toDateString()) newStreak = prog.current_streak + 1;
         }
 
-        const newLongest = Math.max(prog.longest_streak, newStreak);
         await supabase
           .from("child_progress")
           .update({
             total_lessons_completed: prog.total_lessons_completed + 1,
             current_streak: newStreak,
-            longest_streak: newLongest,
+            longest_streak: Math.max(prog.longest_streak, newStreak),
             last_activity_at: now.toISOString(),
           })
           .eq("child_id", lesson.child_id);
       }
 
-      // Check if all lessons in module are complete
-      const { data: moduleLessons } = await supabase
-        .from("lessons")
-        .select("id, completed")
-        .eq("module_id", lesson.module_id);
+      // Award XP & check badges
+      const result = await awardLessonCompletion(
+        lesson.child_id,
+        lesson.id,
+        lesson.module_id,
+        lesson.is_daily_challenge || false,
+        quizScoreRef.current
+      );
+      setEngagementResult(result);
 
-      const allComplete = moduleLessons?.every((l) => l.id === lesson.id || l.completed);
+      // Play sound & show XP
+      playDing();
+      setShowXpGain(true);
+      setTimeout(() => setShowXpGain(false), 1500);
 
-      if (allComplete && module) {
-        // Mark module completed
-        await supabase
-          .from("curriculum_modules")
-          .update({ status: "completed" })
-          .eq("id", module.id);
-
-        // Unlock next module
+      if (result.isModuleComplete && module) {
+        // Mark module completed & unlock next
+        await supabase.from("curriculum_modules").update({ status: "completed" }).eq("id", module.id);
         const { data: nextMod } = await supabase
           .from("curriculum_modules")
           .select("id")
           .eq("child_id", lesson.child_id)
           .eq("week_number", module.week_number + 1)
           .single();
-
         if (nextMod) {
-          await supabase
-            .from("curriculum_modules")
-            .update({ status: "active" })
-            .eq("id", nextMod.id);
+          await supabase.from("curriculum_modules").update({ status: "active" }).eq("id", nextMod.id);
         }
 
-        // Show celebration
+        playApplause();
+        setShowConfetti(true);
         setCelebrationData({
           weekNumber: module.week_number,
-          lessonsCount: moduleLessons?.length || 0,
+          lessonsCount: result.xpGained,
           streak: prog?.current_streak || 1,
         });
-
-        setShowConfetti(true);
         setShowCelebration(true);
         setTimeout(() => setShowConfetti(false), 3000);
+      } else if (result.newLevel > result.oldLevel) {
+        // Level up!
+        playLevelUp();
+        setShowConfetti(true);
+        setTimeout(() => {
+          setShowConfetti(false);
+          setShowLevelUp(true);
+        }, 800);
+      } else if (result.newBadges.length > 0) {
+        // Badge earned
+        setShowConfetti(true);
+        setTimeout(() => {
+          setShowConfetti(false);
+          setShowBadges(true);
+        }, 800);
       } else {
         // Just confetti + navigate back
         setShowConfetti(true);
