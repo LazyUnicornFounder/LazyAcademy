@@ -455,13 +455,7 @@ const ParentDashboard = () => {
                         <p className="text-[#141413] truncate">{lesson.title}</p>
                         <p className="text-[10px] text-[#87867f]">
                           {lesson.completed_at
-                            ? new Date(lesson.completed_at).toLocaleDateString("en-US", {
-                                weekday: "short",
-                                month: "short",
-                                day: "numeric",
-                                hour: "numeric",
-                                minute: "2-digit",
-                              })
+                            ? formatRelativeTime(lesson.completed_at)
                             : ""}
                         </p>
                       </div>

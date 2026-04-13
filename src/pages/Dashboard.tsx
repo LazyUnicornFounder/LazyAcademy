@@ -140,14 +140,6 @@ const Dashboard = () => {
     loadChildren();
   }, [user]);
 
-  const loadProfile = async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("plan")
-      .eq("id", user!.id)
-      .single();
-    if (data?.plan) setCurrentPlan(data.plan);
-  };
 
   const handleUpgrade = async (polarProductId: string, planId: string) => {
     if (!user) return;
