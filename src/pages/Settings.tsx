@@ -63,6 +63,15 @@ const Settings = () => {
     loadPlan();
   }, [user]);
 
+  const loadPlan = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("plan")
+      .eq("id", user!.id)
+      .single();
+    if (data?.plan) setCurrentPlan(data.plan);
+  };
+
   const loadSettings = async () => {
     const { data } = await supabase
       .from("profiles")
