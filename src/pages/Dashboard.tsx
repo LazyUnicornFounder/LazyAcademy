@@ -106,6 +106,7 @@ const Dashboard = () => {
   const [currentPlan, setCurrentPlan] = useState("free");
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
   const [rewards, setRewards] = useState<{ xp_total: number; level: number } | null>(null);
   const [reviewLessons, setReviewLessons] = useState<Lesson[]>([]);
   const [moduleProjects, setModuleProjects] = useState<any[]>([]);
