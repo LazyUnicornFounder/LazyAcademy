@@ -301,10 +301,10 @@ const Dashboard = () => {
                   <div className="h-1.5 flex-1 max-w-[120px] rounded-full bg-[#e5e4de] overflow-hidden">
                     <div
                       className="h-full bg-[#c96442] rounded-full transition-all"
-                      style={{ width: `${(xpForNextLevel(rewards.xp_total).current / 100) * 100}%` }}
+                      style={{ width: `${Math.min((xpForNextLevel(rewards.xp_total).current / xpForNextLevel(rewards.xp_total).needed) * 100, 100)}%` }}
                     />
                   </div>
-                  <span className="text-[10px] text-[#87867f]">{xpForNextLevel(rewards.xp_total).current}/100 XP</span>
+                  <span className="text-[10px] text-[#87867f]">{xpForNextLevel(rewards.xp_total).current}/{xpForNextLevel(rewards.xp_total).needed} XP</span>
                 </div>
               )}
             </div>
@@ -331,11 +331,9 @@ const Dashboard = () => {
               {currentPlan}
             </span>
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
+          <div className="grid gap-3 md:grid-cols-2 max-w-xl">
             {PLANS.map((plan) => {
               const isCurrent = currentPlan === plan.id;
-              const isDowngrade = (currentPlan === "premium" && plan.id !== "premium") ||
-                (currentPlan === "family" && plan.id === "free");
               return (
                 <div
                   key={plan.id}
@@ -374,20 +372,16 @@ const Dashboard = () => {
                     >
                       Current Plan
                     </Button>
-                  ) : isDowngrade ? null : (
+                  ) : plan.polarProductId ? (
                     <Button
                       size="sm"
-                      className={`w-full rounded-lg text-xs h-8 ${
-                        plan.featured
-                          ? "bg-[#c96442] hover:bg-[#b5593a] text-white"
-                          : "bg-[#141413] hover:bg-[#141413]/90 text-white"
-                      }`}
+                      className="w-full rounded-lg text-xs h-8 bg-[#c96442] hover:bg-[#b5593a] text-white"
                       disabled={checkoutLoading === plan.id}
                       onClick={() => handleUpgrade(plan.polarProductId, plan.id)}
                     >
                       {checkoutLoading === plan.id ? "Loading..." : `Upgrade to ${plan.name}`}
                     </Button>
-                  )}
+                  ) : null}
                 </div>
               );
             })}
