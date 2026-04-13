@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,12 +6,15 @@ import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Eye, BookOpen, Wrench, Headphones, Gamepad2, HelpCircle,
-  Check, X, ChevronRight, Clock, Sparkles,
+  Check, X, ChevronRight, Clock, Sparkles, Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { awardLessonCompletion, type EngagementResult } from "@/lib/engagement";
+import { LevelUpModal, BadgeEarnedModal, XpGainIndicator } from "@/components/engagement/EngagementModals";
+import { playDing, playApplause, playLevelUp } from "@/lib/sounds";
 
 const TYPE_CONFIG: Record<string, { icon: any; color: string; bg: string; label: string }> = {
   video: { icon: Eye, color: "text-blue-700", bg: "bg-blue-100", label: "Video" },
