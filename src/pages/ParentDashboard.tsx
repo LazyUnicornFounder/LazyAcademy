@@ -487,6 +487,83 @@ const ParentDashboard = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Preview Lessons Dialog */}
+      <Dialog open={!!previewModule} onOpenChange={() => setPreviewModule(null)}>
+        <DialogContent className="bg-[#faf9f5] border-[#e5e4de] rounded-2xl max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="font-serif text-lg text-[#141413]">
+              {previewModule?.theme_emoji} Week {previewModule?.week_number}: {previewModule?.title}
+            </DialogTitle>
+          </DialogHeader>
+          {previewLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-20 rounded-xl" />
+              <Skeleton className="h-20 rounded-xl" />
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {previewLessons.map((lesson: any) => {
+                const content = lesson.content_json || {};
+                return (
+                  <div key={lesson.id} className="rounded-xl bg-white border border-[#e5e4de] p-4">
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div>
+                        <p className="text-sm font-medium text-[#141413]">
+                          Day {lesson.day_number}: {lesson.title}
+                        </p>
+                        <p className="text-xs text-[#87867f] mt-0.5">{lesson.type} • {lesson.duration_minutes}m</p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={regeneratingId === lesson.id}
+                        onClick={async () => {
+                          setRegeneratingId(lesson.id);
+                          try {
+                            const { data, error } = await supabase.functions.invoke("regenerate-lesson", {
+                              body: { lesson_id: lesson.id, reason: "parent disapproval" },
+                            });
+                            if (error) throw error;
+                            // Refresh lessons
+                            const { data: refreshed } = await supabase
+                              .from("lessons")
+                              .select("*")
+                              .eq("module_id", previewModule.id)
+                              .order("day_number");
+                            setPreviewLessons(refreshed || []);
+                            toast({ title: "Lesson regenerated", description: "Content has been updated." });
+                          } catch (e: any) {
+                            toast({ title: "Error", description: e.message, variant: "destructive" });
+                          } finally {
+                            setRegeneratingId(null);
+                          }
+                        }}
+                        className="text-[#c96442] hover:text-[#b5593a] text-xs gap-1 flex-shrink-0"
+                      >
+                        <RefreshCw className={`h-3.5 w-3.5 ${regeneratingId === lesson.id ? "animate-spin" : ""}`} />
+                        {regeneratingId === lesson.id ? "..." : "Regenerate"}
+                      </Button>
+                    </div>
+                    {lesson.description && (
+                      <p className="text-xs text-[#5e5d59] mb-2">{lesson.description}</p>
+                    )}
+                    {content.instructions && (
+                      <p className="text-xs text-[#87867f] whitespace-pre-wrap line-clamp-3">{content.instructions}</p>
+                    )}
+                    {content.quiz && content.quiz.length > 0 && (
+                      <p className="text-[10px] text-[#87867f] mt-1">📝 {content.quiz.length} quiz question{content.quiz.length > 1 ? "s" : ""}</p>
+                    )}
+                    {content.exercises && content.exercises.length > 0 && (
+                      <p className="text-[10px] text-[#87867f] mt-0.5">🎮 {content.exercises.length} exercise{content.exercises.length > 1 ? "s" : ""}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
