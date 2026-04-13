@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap } from "lucide-react";
+import { GraduationCap, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import StepParentProfile from "@/components/onboarding/StepParentProfile";
 import StepChildren from "@/components/onboarding/StepChildren";
@@ -59,6 +59,18 @@ const Setup = () => {
     preferences: {},
     schedules: {},
   });
+
+  const handleClose = useCallback(() => {
+    navigate("/");
+  }, [navigate]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && step < 6) handleClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [step, handleClose]);
 
   if (loading) {
     return (
@@ -231,9 +243,20 @@ const Setup = () => {
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="border-b bg-background/95 backdrop-blur">
-        <div className="container flex h-14 items-center gap-3">
-          <GraduationCap className="h-6 w-6 text-primary" />
-          <span className="font-serif text-lg text-foreground">LazyAcademy</span>
+        <div className="container flex h-14 items-center justify-between">
+          <div className="flex items-center gap-3">
+            <GraduationCap className="h-6 w-6 text-primary" />
+            <span className="font-serif text-lg text-foreground">LazyAcademy</span>
+          </div>
+          {step < 6 && (
+            <button
+              onClick={handleClose}
+              className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Close onboarding"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          )}
         </div>
       </div>
 
