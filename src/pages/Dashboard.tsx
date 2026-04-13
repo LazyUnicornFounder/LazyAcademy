@@ -16,7 +16,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { getMuted, setMuted } from "@/lib/sounds";
 import { xpForNextLevel } from "@/lib/engagement";
 
 const LESSON_ICONS: Record<string, any> = {
